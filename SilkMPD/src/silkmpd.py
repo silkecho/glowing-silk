@@ -27,28 +27,8 @@ params = {
     'password': None,
     # Library
     'music_dir': '',
-    # Bling
-    'mmkeys': True,
-    'notify': True,
 }
 
-def usage(params):
-    print("""\
-Usage: %(progname)s [OPTION]... [MPD_HOST] [MPD_PORT]
-
-Note: Environment variables MPD_HOST and MPD_PORT can be used instead of above
-      arguments.
-
-     -p, --path=PATH Sets the library path of MPD to PATH
-     -d, --debug Run in debug mode
-
-Default: MPD_HOST: %(host)s, MPD_PORT: %(port)s
-
-Report bugs to https://github.com/silkecho/glowing-silk/issues""" % params)
-
 if __name__ == '__main__':
-    #params = {}
-    #params['host'] = 'localhost'
-    #params['port'] = '6600'
-    #params['password'] = 'gnuweed'
-    usage(params)
+    print("Well, something happened...")
+    print(params)
