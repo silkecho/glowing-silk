@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*- 
 # silkmpd: A basic Python MPD client using the python-mpd library
 # Copyright (C) 2013 Chris Jacques <chrisjacques.aus@gmail.com>
 #
@@ -99,6 +101,8 @@ class MPDPoller(object):
 def main():
     poller = MPDPoller(params['host'])
     poller.connect()
+    import pkg_resources
+    print(pkg_resources.get_distribution("python-mpd2").version)
     
     while True:
         poller.poll()
