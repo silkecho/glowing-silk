@@ -318,6 +318,138 @@ class PreferencesWindow(qltk.UniqueWindow):
 
         def _entry(self, entry, name, section="settings"):
             config.set(section, name, entry.get_text())
+            
+    class Connection(gtk.VBox):
+        name = "connection"
+        def __init__(self):
+            super(PreferencesWindow.Connection, self).__init__(spacing=12)
+            self.set_border_width(12)
+            self.title = _("Connection")
+            
+            vbox = gtk.VBox(spacing=6)
+            hb = gtk.HBox(spacing=6)
+            e = UndoEntry()
+            e.set_text(config.get("connection", "hostname"))
+            e.connect('changed', self.__changed_tb, 'connection', 'hostname')
+            e.set_tooltip_text(
+                    _("The MPD Host to Connect to"))
+            l = gtk.Label(_("Hostname:"))
+            l.set_use_underline(True)
+            l.set_mnemonic_widget(e)
+            hb.pack_start(l, expand=False)
+            hb.pack_start(e)
+            vbox.pack_start(hb, expand=False)
+            
+            hb = gtk.HBox(spacing=6)
+            e = UndoEntry()
+            e.set_text(config.get("connection", "port"))
+            e.connect('changed', self.__changed_tb, 'connection', 'port')
+            e.set_tooltip_text(
+                    _("Port of the MPD Host"))
+            l = gtk.Label(_("Port:"))
+            l.set_use_underline(True)
+            l.set_mnemonic_widget(e)
+            hb.pack_start(l, expand=False)
+            hb.pack_start(e)
+            vbox.pack_start(hb, expand=False)
+            
+            hb = gtk.HBox(spacing=6)
+            e = UndoEntry()
+            e.set_text(config.get("connection", "password"))
+            e.connect('changed', self.__changed_tb, 'connection', 'password')
+            e.set_tooltip_text(
+                    _("Password for the MPD Host (if necessary)"))
+            e.set_visibility(False)
+            l = gtk.Label(_("Password:"))
+            l.set_use_underline(True)
+            l.set_mnemonic_widget(e)
+            hb.pack_start(l, expand=False)
+            hb.pack_start(e)
+            vbox.pack_start(hb, expand=False)
+            
+            f = qltk.Frame(_("MPD Server Connection"), child=vbox)
+            self.pack_start(f, expand=False)
+
+            # player backend
+#            if player.backend and hasattr(player.device, 'PlayerPreferences'):
+#                player_prefs = player.device.PlayerPreferences()
+#                f = qltk.Frame(_("Output Configuration"), child=player_prefs)
+#                self.pack_start(f, expand=False)
+
+            # replaygain
+            fallback_gain = config.getfloat("player", "fallback_gain", 0.0)
+            adj = gtk.Adjustment(fallback_gain, -12.0, 12.0, 0.5, 0.5, 0.0)
+            fb_spin = gtk.SpinButton(adj)
+            fb_spin.set_digits(1)
+            fb_spin.connect('changed', self.__changed,
+                            'player', 'fallback_gain')
+            fb_spin.set_tooltip_text(
+                _("If no Replay Gain information is available "
+                  "for a song, scale the volume by this value"))
+
+            fb_label = gtk.Label(_("_Fall-back gain (dB):"))
+            fb_label.set_use_underline(True)
+            fb_label.set_mnemonic_widget(fb_spin)
+
+            pre_amp_gain = config.getfloat("player", "pre_amp_gain", 0.0)
+            adj = gtk.Adjustment(pre_amp_gain, -6, 6, 0.5, 0.5, 0.0)
+            adj.connect('value-changed', self.__changed,
+                        'player', 'pre_amp_gain')
+            pre_spin = gtk.SpinButton(adj)
+            pre_spin.set_digits(1)
+            pre_spin.set_tooltip_text(
+                _("Scale volume for all songs by this value, "
+                  "as long as the result will not clip"))
+
+            pre_label = gtk.Label(_("_Pre-amp gain (dB):"))
+            pre_label.set_use_underline(True)
+            pre_label.set_mnemonic_widget(pre_spin)
+
+            widgets = [pre_label, pre_spin, fb_label, fb_spin]
+            c = ConfigCheckButton(_("_Enable Replay Gain volume adjustment"),
+                                    "player", "replaygain", populate=True)
+            c.connect('toggled', self.__toggled_gain, widgets)
+
+            # packing
+            table = gtk.Table(3, 2)
+            table.set_col_spacings(6)
+            table.set_row_spacings(6)
+
+            table.attach(c, 0, 2, 0, 1)
+            fb_label.set_alignment(0, 0.5)
+            table.attach(fb_label, 0, 1, 1, 2,
+                         xoptions=0)
+            pre_label.set_alignment(0, 0.5)
+            table.attach(pre_label, 0, 1, 2, 3,
+                         xoptions=0)
+
+            fb_align = gtk.Alignment(0, 0.5, 0, 1)
+            fb_align.add(fb_spin)
+            table.attach(fb_align, 1, 2, 1, 2)
+
+            pre_align = gtk.Alignment(0, 0.5, 0, 1)
+            pre_align.add(pre_spin)
+            table.attach(pre_align, 1, 2, 2, 3)
+
+            f = qltk.Frame(_("Replay Gain Volume Adjustment"), child=table)
+
+            c.emit('toggled')
+
+            self.pack_start(f, expand=False)
+            self.show_all()
+
+        def __toggled_gain(self, activator, widgets):
+            if player.playlist: # tests
+                player.playlist.volume = player.playlist.volume
+            for widget in widgets:
+                widget.set_sensitive(activator.get_active())
+
+        def __changed(self, adj, section, name):
+            config.set(section, name, str(adj.get_value()))
+            player.playlist.volume = player.playlist.volume
+        
+        def __changed_tb(self, entry, section, name):
+            config.set(section, name, entry.get_text())
 
     class Player(gtk.VBox):
         name = "playback"
@@ -513,7 +645,7 @@ class PreferencesWindow(qltk.UniqueWindow):
         self.set_transient_for(qltk.get_top_parent(parent))
 
         self.__notebook = notebook = qltk.Notebook()
-        for Page in [self.SongList, self.Browsers, self.Player,
+        for Page in [self.Connection, self.Player, self.SongList, self.Browsers,
             self.Library, self.Tagging]: notebook.append_page(Page())
 
         close = gtk.Button(stock=gtk.STOCK_CLOSE)

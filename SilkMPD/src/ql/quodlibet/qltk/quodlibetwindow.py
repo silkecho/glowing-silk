@@ -45,6 +45,8 @@ from quodlibet.util.uri import URI
 from quodlibet.util.library import background_filter
 from quodlibet.qltk.window import PersistentWindowMixin
 
+from quodlibet.player import quodmpd
+
 class MainSongList(SongList):
     # The SongList that represents the current playlist.
 
@@ -193,6 +195,9 @@ class QuodLibetWindow(gtk.Window, PersistentWindowMixin):
 
         main_box = gtk.VBox()
         self.add(main_box)
+        
+        # create test instance of the MPD backend
+        self._mpd = quodmpd.QuodMpd()
 
         # create main menubar, load/restore accelerator groups
         self.__library = library
@@ -423,17 +428,10 @@ class QuodLibetWindow(gtk.Window, PersistentWindowMixin):
 
         actions = [
             ('Music', None, _("_Music")),
-            ('AddFolders', gtk.STOCK_ADD, _('_Add a Folder...'),
-             "<control>O", None, self.open_chooser),
-            ('AddFiles', gtk.STOCK_ADD, _('_Add a File...'),
-             None, None, self.open_chooser),
-            ('AddLocation', gtk.STOCK_ADD, _('_Add a Location...'),
-             None, None, self.open_location),
+            ('SwitchAudioOutputs', gtk.STOCK_FIND, _('_Audio Outputs'), ""),
             ('BrowseLibrary', gtk.STOCK_FIND, _('_Browse Library'), ""),
             ("Preferences", gtk.STOCK_PREFERENCES, None, None, None,
              self.__preferences),
-            ("Plugins", gtk.STOCK_EXECUTE, _("_Plugins"), None, None,
-             self.__plugins),
             ("Quit", gtk.STOCK_QUIT, None, None, None, self.destroy),
             ('Filters', None, _("_Filters")),
 
@@ -495,8 +493,8 @@ class QuodLibetWindow(gtk.Window, PersistentWindowMixin):
         act.connect('activate', self.__rebuild, False)
         ag.add_action_with_accel(act, None)
         act = gtk.Action(
-            "ReloadLibrary", _("Re_load Library"), None, gtk.STOCK_REFRESH)
-        act.connect('activate', self.__rebuild, True)
+            "ConnectDisconnect", _("_Connect/Disconnect"), None, gtk.STOCK_REFRESH)
+        act.connect('activate', self.__toggle_connected, True)
         ag.add_action_with_accel(act, None)
 
         for tag_, lab in [
@@ -556,6 +554,7 @@ class QuodLibetWindow(gtk.Window, PersistentWindowMixin):
         self.ui.insert_action_group(ag, -1)
         menustr = const.MENU % {"browsers": browsers.BrowseLibrary(),
                                 "views": browsers.ViewBrowser(),
+                                "mpd_audio_outputs": self._mpd.browse_audio_outputs(),
                                 "debug": debug_menu}
         self.ui.add_ui_from_string(menustr)
 
@@ -564,10 +563,6 @@ class QuodLibetWindow(gtk.Window, PersistentWindowMixin):
         # attach them.
         self.ui.get_widget("/Menu/Music/RefreshLibrary").set_tooltip_text(
                 _("Check for changes in your library"))
-
-        self.ui.get_widget("/Menu/Music/ReloadLibrary").set_tooltip_text(
-                _("Reload all songs in your library "
-                  "(this can take a long time)"))
 
         self.ui.get_widget("/Menu/Filters/TopRated").set_tooltip_text(
                 _("The 40 songs you've played most (more than 40 may "
@@ -673,7 +668,7 @@ class QuodLibetWindow(gtk.Window, PersistentWindowMixin):
 
     def __update_title(self, player):
         song = player.info
-        title = "Quod Libet"
+        title = "QuodMPD"
         if song:
             title = song.comma("~title~version~~people") + " - " + title
         self.set_title(title)
@@ -791,6 +786,14 @@ class QuodLibetWindow(gtk.Window, PersistentWindowMixin):
         exclude = config.get("library", "exclude").split(":")
         copool.add(self.__library.rebuild,
                    paths, force, exclude, cofuncid="library", funcid="library")
+        
+    def __toggle_connected(self, activator, force):
+        '''Try and connect/disconnect to/from MPD instance'''
+        if self._mpd.is_connected():
+            self._mpd.disconnect()
+        else:
+            self._mpd.connect()
+            self._mpd.print_current_song()
 
     # Set up the preferences window.
     def __preferences(self, activator):

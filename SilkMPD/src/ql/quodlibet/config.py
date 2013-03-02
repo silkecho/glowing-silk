@@ -192,7 +192,13 @@ def init(*rc_files):
           "prefer_embedded": "false",
           "force_filename": "false",
           "filename": "folder.jpg",
-          }
+          },
+               
+        "connection":
+        { "hostname": "localhost",
+          "port": "6600",
+          "password": "",
+         }
         }
 
     # <=2.2.1 QL created the user folder in the profile folder

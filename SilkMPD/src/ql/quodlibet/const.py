@@ -40,14 +40,14 @@ if os.name == "nt":
 else:
     HOME = os.path.expanduser("~")
 
-if 'QUODLIBET_USERDIR' in os.environ:
-    USERDIR = os.environ['QUODLIBET_USERDIR']
+if 'QUODMPD_USERDIR' in os.environ:
+    USERDIR = os.environ['QUODMPD_USERDIR']
 else:
     if os.name == "nt":
         USERDIR = shell.SHGetFolderPath(0, shellcon.CSIDL_APPDATA, 0, 0)
-        USERDIR = os.path.join(USERDIR, "Quod Libet")
+        USERDIR = os.path.join(USERDIR, "QuodMPD")
     else:
-        USERDIR = os.path.join(HOME, ".quodlibet")
+        USERDIR = os.path.join(HOME, ".quodMPD")
 
 CONTROL = os.path.join(USERDIR, "control")
 CONFIG  = os.path.join(USERDIR, "config")
@@ -142,19 +142,17 @@ DEBUG = "QUODLIBET_DEBUG" in os.environ
 MENU = """<ui>
   <menubar name='Menu'>
     <menu action='Music'>
-      <menuitem action='AddFolders'/>
-      <menuitem action='AddFiles'/>
-      <menuitem action='AddLocation'/>
+      <menuitem action='ConnectDisconnect'/>
+      <menu action='SwitchAudioOutputs'>
+      %(mpd_audio_outputs)s
+      </menu>
       <separator/>
       <menu action='BrowseLibrary'>
       %(browsers)s
       </menu>
+      <menuitem action='RefreshLibrary'/>
       <separator/>
       <menuitem action='Preferences'/>
-      <menuitem action='Plugins'/>
-      <separator/>
-      <menuitem action='RefreshLibrary'/>
-      <menuitem action='ReloadLibrary'/>
       <separator/>
       <menuitem action='Quit'/>
     </menu>
